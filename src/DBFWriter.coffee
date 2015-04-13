@@ -6,9 +6,9 @@ path = require 'path'
 JSZip = require "jszip"
 FileKit = require "./FileKit"
 
-execSync = require 'exec-sync'
+child_process = require 'child_process'
 
-FIELDSIZE = 
+FIELDSIZE =
     C: 255
     D: 8
     N: 21
@@ -28,7 +28,7 @@ rFill = (str, len, char)->
 class DBFWriter
     ###
     header: {
-        name: 'name', 
+        name: 'name',
         type: 'D'
     }
     ###
@@ -59,7 +59,7 @@ class DBFWriter
             throw new Error "the file aready exist!"
         wsBuffer = @_generate()
         zip = new JSZip()
-        zip.file (FileKit.makeSuffix @fileName, "dbf"), wsBuffer, 
+        zip.file (FileKit.makeSuffix @fileName, "dbf"), wsBuffer,
             compression: "DEFLATE"
             base64: false
         fs.writeFileSync((FileKit.makeSuffix @pathName, "zip"), zip.generate
@@ -71,7 +71,7 @@ class DBFWriter
             throw new Error "the zip file aready exist!"
         @write()
         cmd = "zip -jqm #{FileKit.makeSuffix @pathName, "zip"} #{FileKit.makeSuffix @pathName, "dbf"}"
-        result = execSync cmd, true
+        result = child_process.execSync cmd
         throw new Error result.stderr if result.stderr
         throw new Error result.stdout unless fs.existsSync(FileKit.makeSuffix @pathName, "zip")
 
@@ -113,9 +113,9 @@ class DBFWriter
         wsBuffer.writeUInt8 3, 0,
         wsBuffer.writeUInt8 now.getFullYear() - 1900, 1
         wsBuffer.writeUInt8 now.getMonth() + 1, 2
-        wsBuffer.writeUInt8 now.getDate(), 3 
-        wsBuffer.writeUInt32LE @doc.length, 4 
-        wsBuffer.writeUInt16LE 32 + 32*@header.length + 1, 8 
+        wsBuffer.writeUInt8 now.getDate(), 3
+        wsBuffer.writeUInt32LE @doc.length, 4
+        wsBuffer.writeUInt16LE 32 + 32*@header.length + 1, 8
         wsBuffer.writeUInt16LE @header.totalFieldsLength, 10
         wsBuffer.fill 0, 12, 32
         offset = 32
@@ -159,7 +159,7 @@ class DBFWriter
         if val instanceof Date
             val = "#{val.getFullYear()}-#{lFill (val.getMonth()+1).toString(), 2, '0'}-#{lFill val.getDate().toString(), 2, '0'} #{(lFill val.getHours().toString() , 2, '0')}:#{(lFill val.getMinutes().toString() , 2, '0')}:#{(lFill val.getSeconds().toString() , 2, '0')}"
             buf = new Buffer val
-        else 
+        else
             buf = @iconv.convert val.toString()
         @_writeBufferChar buf, head, wsBuffer, offset
     _writeBufferDate: (val, head, wsBuffer, offset)->
